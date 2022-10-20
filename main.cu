@@ -23,6 +23,8 @@ COMMAND     : g++ -std=c++11 -pthread iec2019065.cpp
 using namespace std;
 using namespace std::chrono;
 
+#define NUM_THREADS 4
+
 // thread parameters
 int num_of_threads;
 int thread_count_track =0;
@@ -152,7 +154,7 @@ int main()
     
     // multiplication with using threads
     cout<<"\nEnter Number of threads to use: ";
-    cin>>num_of_threads;
+    num_of_threads = NUM_THREADS;
     cout<<"\nMultiplication Using Threads\n";
     
     vector<thread> threads(num_of_threads);
