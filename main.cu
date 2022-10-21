@@ -33,8 +33,8 @@ int thread_count_track =0;
 vector<double>csr_val, csr_row, csr_col;
 
 //cuda attributes
-double *x, *y, *z, *C;
-int x_size = 0, y_size = 0, z_size = 0, C_size = 0;
+double *x, *y, *z, *C, *b;
+int x_size = 0, y_size = 0, z_size = 0, C_size = 0, b_size = 0;
 
 //Matrix B and C
 vector<double>b_vector;
@@ -79,6 +79,11 @@ void matrix_to_csr(vector<vector<double>>&matrix)
     for(auto i=0; i<csr_val.size(); i++)
     z[i] = csr_val[i];
 
+    cudaMallocManaged(&C, vector_size*sizeof(double));
+    C_size = vector_size;
+    cudaMallocManaged(&b, vector_size*sizeof(double));
+    b_size = vector_size;
+
 }
 
 // function to perform CSR-vector multiplication without using threads
@@ -109,10 +114,10 @@ void thread_multiplication()
     for( int i = batch_start; i<= batch_end && i<vector_size; i++ )
     {
         int position = 0;
-        if(i) position = csr_row[i-1];
-        for(int j=position; j<csr_row[i] ; j++)
+        if(i) position = x[i-1];
+        for(int j=position; j<x[i] ; j++)
         {
-            c_vector[i] += csr_val[j] * b_vector[csr_col[j]];
+            C[i] += csr_val[j] * b[y[j]];
         }
     }
 }
@@ -151,9 +156,17 @@ int main()
         int x = stoi(word);
         b_vector.push_back(x);
     }
+
+
     
     // covert 2d matrix to CSR format
     matrix_to_csr(matrix);
+
+    //b_vector copy to cuda attribute
+    for(auto i =0; i<b_vector.size(); i++)
+    {
+      b[i] = b_vector[i];
+    }
     
     cout<<"\nCSR Value vector: \n";
     for(auto i:csr_val) cout<<i<<" "; cout<<"\n";
