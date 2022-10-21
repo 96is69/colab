@@ -30,19 +30,20 @@ int num_of_threads;
 int thread_count_track =0;
 
 // Matrix A components for CSR format
-vector<double>csr_val, csr_row, csr_col;
+__device__ vector<double>csr_val, csr_row, csr_col;
 
 //cuda attributes
 __device__ double *x, *y, *z, *C, *b;
 __device__ int x_size = 0, y_size = 0, z_size = 0, C_size = 0, b_size = 0;
 
 //Matrix B and C
-vector<double>b_vector;
-vector<double>c_vector;
+__device__ vector<double>b_vector;
+__device__ vector<double>c_vector;
 __device__ int vector_size;
 
 
 // function to convert 2d sparse matrix to CSR format
+__global__
 void matrix_to_csr(vector<vector<double>>&matrix)
 {
     int temp_count = 0;
@@ -87,6 +88,7 @@ void matrix_to_csr(vector<vector<double>>&matrix)
 }
 
 // function to perform CSR-vector multiplication without using threads
+__global__
 void multiplication()
 {
     for(int i=0;i<vector_size;i++)
@@ -136,6 +138,7 @@ void thread_multiplication()
     }
 }
 
+__global__
 int main()
 {
     // read COO file
