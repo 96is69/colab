@@ -33,13 +33,13 @@ int thread_count_track =0;
 vector<double>csr_val, csr_row, csr_col;
 
 //cuda attributes
-double *x, *y, *z, *C, *b;
-int x_size = 0, y_size = 0, z_size = 0, C_size = 0, b_size = 0;
+__device__ double *x, *y, *z, *C, *b;
+__device__ int x_size = 0, y_size = 0, z_size = 0, C_size = 0, b_size = 0;
 
 //Matrix B and C
 vector<double>b_vector;
 vector<double>c_vector;
-int vector_size;
+__device__ int vector_size;
 
 
 // function to convert 2d sparse matrix to CSR format
@@ -130,7 +130,8 @@ void thread_multiplication()
       if(i) position = x[i-1];
       for(int j=position; j<x[i] ; j++)
       {
-          C[i] += z[j] * b[y[j]];
+          // C[i] += z[j] * b[y[j]];
+          C[i] = j;
       }
     }
 }
