@@ -104,21 +104,34 @@ void multiplication()
 __global__
 void thread_multiplication()
 {
-    int position = 0;
-    // find the batch to be processed by the current thread
-    int batch_start = (vector_size/num_of_threads)*thread_count_track;
-    int batch_end = (vector_size/num_of_threads)*(thread_count_track+1);
+    // int position = 0;
+    // // find the batch to be processed by the current thread
+    // int batch_start = (vector_size/num_of_threads)*thread_count_track;
+    // int batch_end = (vector_size/num_of_threads)*(thread_count_track+1);
 
-    thread_count_track += 1;
+    // thread_count_track += 1;
 
-    for( int i = batch_start; i<= batch_end && i<vector_size; i++ )
+    // for( int i = batch_start; i<= batch_end && i<vector_size; i++ )
+    // {
+    //     int position = 0;
+    //     if(i) position = x[i-1];
+    //     for(int j=position; j<x[i] ; j++)
+    //     {
+    //         C[i] += z[j] * b[y[j]];
+    //     }
+    // }
+
+    int index = threadIdx.x;
+    int stride = blockDim.x;
+    
+    for( int i = index; i<vector_size; i += stride)
     {
-        int position = 0;
-        if(i) position = x[i-1];
-        for(int j=position; j<x[i] ; j++)
-        {
-            C[i] += z[j] * b[y[j]];
-        }
+      int position = 0;
+      if(i) position = x[i-1];
+      for(int j=position; j<x[i] ; j++)
+      {
+          C[i] += z[j] * b[y[j]];
+      }
     }
 }
 
