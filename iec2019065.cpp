@@ -98,7 +98,7 @@ void thread_multiplication()
 
 void allocate_matrix()
 {
-  cudaMallocManaged(&matrix, (M*N)*sizeof(float));
+  matrix = malloc((M*N)*sizeof(double));
 }
 
 int main()

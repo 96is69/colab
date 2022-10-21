@@ -226,8 +226,8 @@ int main()
     threads[i].join();
 
         // STOP TIMER AND PRINT DURATION
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<microseconds>(stop - start);
+    __device__ int stop = high_resolution_clock::now();
+    __device__ int duration = duration_cast<microseconds>(stop - start);
     cout<< "\nTime taken : " << duration.count() << " microseconds\n" << endl;
 
         // PRINT C_VECTOR
