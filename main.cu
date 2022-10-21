@@ -117,7 +117,7 @@ void thread_multiplication()
         if(i) position = x[i-1];
         for(int j=position; j<x[i] ; j++)
         {
-            C[i] += csr_val[j] * b[y[j]];
+            C[i] += z[j] * b[y[j]];
         }
     }
 }
