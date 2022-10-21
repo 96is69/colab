@@ -23,27 +23,23 @@ COMMAND     : g++ -std=c++11 -pthread iec2019065.cpp
 using namespace std;
 using namespace std::chrono;
 
-#define NUM_THREADS 4
+# define NUM_THREADS 4
 
 // thread parameters
-__device__ int num_of_threads;
-__device__ int thread_count_track =0;
+int num_of_threads;
+int thread_count_track =0;
 
 // Matrix A components for CSR format
-__device__ vector<double>csr_val, csr_row, csr_col;
+vector<double>csr_val, csr_row, csr_col;
 
-//cuda attributes
-__device__ double *x, *y, *z, *C, *b;
-__device__ int x_size = 0, y_size = 0, z_size = 0, C_size = 0, b_size = 0;
 
 //Matrix B and C
-__device__ vector<double>b_vector;
-__device__ vector<double>c_vector;
-__device__ int vector_size;
+vector<double>b_vector;
+vector<double>c_vector;
+int vector_size;
 
 
 // function to convert 2d sparse matrix to CSR format
-__global__
 void matrix_to_csr(vector<vector<double>>&matrix)
 {
     int temp_count = 0;
@@ -62,33 +58,9 @@ void matrix_to_csr(vector<vector<double>>&matrix)
 
         csr_row.push_back(temp_count);
     }
-
-    
-    cudaMallocManaged(&x, csr_row.size()*sizeof(double));
-    x_size = csr_row.size();
-    cudaMallocManaged(&y, csr_col.size()*sizeof(double));
-    y_size = csr_col.size();
-    cudaMallocManaged(&z, csr_val.size()*sizeof(double));
-    z_size = csr_val.size();
-
-    for(auto i=0; i<csr_row.size(); i++)
-    x[i] = csr_row[i];
-
-    for(auto i=0; i<csr_col.size(); i++)
-    y[i] = csr_col[i];
-
-    for(auto i=0; i<csr_val.size(); i++)
-    z[i] = csr_val[i];
-
-    cudaMallocManaged(&C, vector_size*sizeof(double));
-    C_size = vector_size;
-    cudaMallocManaged(&b, vector_size*sizeof(double));
-    b_size = vector_size;
-
 }
 
 // function to perform CSR-vector multiplication without using threads
-__global__
 void multiplication()
 {
     for(int i=0;i<vector_size;i++)
@@ -104,41 +76,26 @@ void multiplication()
 
 // function to perform CSR-vector multiplication by using threads
 __global__
-void thread_multiplication()
+void thread_multiplication(double *c_vector_cuda, double *csr_row_cuda, double *csr_col_cuda, double *csr_val_cuda, double *b_vector_cuda, double vector_size_cuda)
 {
-    // int position = 0;
-    // // find the batch to be processed by the current thread
-    // int batch_start = (vector_size/num_of_threads)*thread_count_track;
-    // int batch_end = (vector_size/num_of_threads)*(thread_count_track+1);
-
-    // thread_count_track += 1;
-
-    // for( int i = batch_start; i<= batch_end && i<vector_size; i++ )
-    // {
-    //     int position = 0;
-    //     if(i) position = x[i-1];
-    //     for(int j=position; j<x[i] ; j++)
-    //     {
-    //         C[i] += z[j] * b[y[j]];
-    //     }
-    // }
-
-    int index = threadIdx.x;
+    // find the batch to be processed by the current thread
+    int batch_start = threadIdx.x;
     int stride = blockDim.x;
-    
-    for( int i = index; i<vector_size; i += stride)
+
+    for( int i = batch_start;  i<vector_size_cuda; i += stride )
     {
-      int position = 0;
-      if(i) position = x[i-1];
-      for(int j=position; j<x[i] ; j++)
-      {
-          // C[i] += z[j] * b[y[j]];
-          C[i] = j;
-      }
+        int position = 0;
+        if(i) position = csr_row_cuda[i-1];
+        for(int j=position; j<csr_row_cuda[i] ; j++)
+        {
+            int temp = csr_col_cuda[j];
+            c_vector_cuda[i] += csr_val_cuda[j] * (b_vector_cuda[temp]);
+        }
     }
+
+    printf("\nCUDA\n");
 }
 
-__global__
 int main()
 {
     // read COO file
@@ -173,91 +130,152 @@ int main()
         int x = stoi(word);
         b_vector.push_back(x);
     }
-
-
     
     // covert 2d matrix to CSR format
     matrix_to_csr(matrix);
-
-    //b_vector copy to cuda attribute
-    for(auto i =0; i<b_vector.size(); i++)
-    {
-      b[i] = b_vector[i];
-    }
     
-    cout<<"\nCSR Value vector: \n";
-    for(auto i:csr_val) cout<<i<<" "; cout<<"\n";
-    cout<<"\nCSR Column vector: \n";
-    for(auto i:csr_col) cout<<i<<" "; cout<<"\n";
-    cout<<"\nCSR Row vector: \n";
-    for(auto i:csr_row) cout<<i<<" "; cout<<"\n";
+    // cout<<"\nCSR Value vector: \n";
+    // for(auto i:csr_val) cout<<i<<" "; cout<<"\n";
+    // cout<<"\nCSR Column vector: \n";
+    // for(auto i:csr_col) cout<<i<<" "; cout<<"\n";
+    // cout<<"\nCSR Row vector: \n";
+    // for(auto i:csr_row) cout<<i<<" "; cout<<"\n";
 
     // print matrix A
-    for(int i=0;i<M;i++)
-    {
-        for(int j=0;j<N;j++)
-        {
-            cout<<matrix[i][j]<<" ";
-        }
-        cout<<endl;
-    }
+    // for(int i=0;i<M;i++)
+    // {
+    //     for(int j=0;j<N;j++)
+    //     {
+    //         cout<<matrix[i][j]<<" ";
+    //     }
+    //     cout<<endl;
+    // }
 
     cout<<endl;
-
-
-    
     
     
     // multiplication with using threads
-    cout<<"\nEnter Number of threads to use: ";
     num_of_threads = NUM_THREADS;
-    cout<<"\nMultiplication Using Threads\n";
-    
-    vector<thread> threads(num_of_threads);
-    c_vector.assign(vector_size, 0);
+    // cout<<"\nMultiplication Using Threads\n";
 
-        // START TIMER
-    auto start = high_resolution_clock::now();
-
-    for(int i=0;i<num_of_threads;i++)
-    threads[i] = thread(thread_multiplication);
-
-    for(int i=0;i<num_of_threads;i++)
-    threads[i].join();
-
-        // STOP TIMER AND PRINT DURATION
-    __device__ int stop = high_resolution_clock::now();
-    __device__ int duration = duration_cast<microseconds>(stop - start);
-    cout<< "\nTime taken : " << duration.count() << " microseconds\n" << endl;
-
-        // PRINT C_VECTOR
-    for(auto i:c_vector) 
-    cout<<i<<" "; 
-    cout<<"\n";
-    
-    // multiplication without using threads
-    cout<<"\nMultiplication Without Using Threads : \n";
     
     
-    c_vector.assign(vector_size, 0);
+    // vector<thread> threads(num_of_threads);
+    // c_vector.assign(vector_size, 0);
 
-        // START TIMER
-    start = high_resolution_clock::now();
-    multiplication();
-        // STOP TIMER AND PRINT DURATION
-    stop = high_resolution_clock::now();
-    duration = duration_cast<microseconds>(stop - start);
-    cout<< "\nTime taken : " << duration.count() << " microseconds\n" << endl;
+    //     // START TIMER
+    // auto start = high_resolution_clock::now();
+
+    // for(int i=0;i<num_of_threads;i++)
+    // threads[i] = thread(thread_multiplication);
+
+    // for(int i=0;i<num_of_threads;i++)
+    // threads[i].join();
+
+    //     // STOP TIMER AND PRINT DURATION
+    // auto stop = high_resolution_clock::now();
+    // auto duration = duration_cast<microseconds>(stop - start);
+    // cout<< "\nTime taken : " << duration.count() << " microseconds\n" << endl;
 
 
-        // PRINT C_VECTOR
-    for(auto i:c_vector) 
-    cout<<i<<" "; 
-    cout<<"\n";
+    //CUDA 
 
-    cudaFree(x);
-    cudaFree(y);
-    cudaFree(z);
+    cout<<b_vector.size()<<endl;
+
+
+    
+
+        //mem allocation
+    double *c_vector_cuda_temp, *csr_row_cuda_temp, *csr_col_cuda_temp, *csr_val_cuda_temp, *b_vector_cuda_temp;
+
+   
+        //c_vector
+    cudaMallocManaged(&c_vector_cuda_temp, vector_size*sizeof(double));
+
+    cudaMallocManaged(&csr_row_cuda_temp, csr_row.size()*sizeof(double));
+    
+
+    for(auto i=0; i<csr_row.size(); i++)
+    csr_row_cuda_temp[i] = csr_row[i];
+
+
+    cudaMallocManaged(&csr_col_cuda_temp, csr_col.size()*sizeof(double));
+    for(auto i=0; i<csr_col.size(); i++)
+    csr_col_cuda_temp[i] = csr_col[i];
+
+    
+    
+
+    
+
+    cudaMallocManaged(&csr_val_cuda_temp, csr_val.size()*sizeof(double));
+    for(auto i=0; i<csr_val.size(); i++)
+    csr_val_cuda_temp[i] = csr_val[i];
+
+    
+
+    
+    cudaMallocManaged(&b_vector_cuda_temp, vector_size*sizeof(double));
+    for(auto i=0; i<b_vector.size(); i++)
+    b_vector_cuda_temp[i] = b_vector[i];
+
+
+    
+
+    
+
+    for(auto i:b_vector)
+    cout<<i<<" ";
+    cout<<endl;
+
+    for(int i=0; i<vector_size; i++)
+    printf("%f ",b_vector_cuda_temp[i]);
+    printf("\n");
+
+    printf("\nCUDA\n");
+
+    thread_multiplication<<<1,NUM_THREADS>>>(
+        c_vector_cuda_temp,
+        csr_row_cuda_temp,
+        csr_col_cuda_temp,
+        csr_val_cuda_temp,
+        b_vector_cuda_temp,
+        vector_size
+    );
+
+    cudaDeviceSynchronize();
+
+    cout<<"\n\n\n";
+
+    for(int i=0; i<vector_size; i++)
+    cout<<c_vector_cuda_temp[i]<<" ";
+
+
+
+    //     // PRINT C_VECTOR
+    // for(auto i:c_vector) 
+    // cout<<i<<" "; 
+    // cout<<"\n";
+    
+    // // multiplication without using threads
+    // cout<<"\nMultiplication Without Using Threads : \n";
+    
+    
+    // c_vector.assign(vector_size, 0);
+
+    //     // START TIMER
+    // start = high_resolution_clock::now();
+    // multiplication();
+    //     // STOP TIMER AND PRINT DURATION
+    // stop = high_resolution_clock::now();
+    // duration = duration_cast<microseconds>(stop - start);
+    // cout<< "\nTime taken : " << duration.count() << " microseconds\n" << endl;
+
+
+    //     // PRINT C_VECTOR
+    // for(auto i:c_vector) 
+    // cout<<i<<" "; 
+    // cout<<"\n";
     
     return 0;
 }
