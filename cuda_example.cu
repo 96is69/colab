@@ -3,13 +3,15 @@ using namespace std;
 // Kernel function to add the elements of two arrays
 float *x, *y;
 
+ int *nx;
+
 __global__
-void add(int n, float *x, float *y, vector<int> v)
+void add(int n, float *x, float *y, int *arr)
 {
   for (int i = 0; i < n; i++)
     y[i] = x[i] + y[i];
 
-  printf("%d ", v[2]);
+  printf("%d ", arr[0]);
 }
 
 int main()
@@ -30,7 +32,11 @@ int main()
     y[i] = 2.0f;
   }
 
-  vector<int> nx = {1,2,3};
+  cudaMallocManaged(&nx, 3*sizeof(int));
+  for(int i=0; i<3; i++)
+  {
+    nx[i] = 3;
+  }
 
 
   // Run kernel on 1M elements on the GPU
