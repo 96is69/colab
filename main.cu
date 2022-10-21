@@ -26,8 +26,8 @@ using namespace std::chrono;
 #define NUM_THREADS 4
 
 // thread parameters
-int num_of_threads;
-int thread_count_track =0;
+__device__ int num_of_threads;
+__device__ int thread_count_track =0;
 
 // Matrix A components for CSR format
 __device__ vector<double>csr_val, csr_row, csr_col;
