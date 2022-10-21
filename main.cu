@@ -32,6 +32,10 @@ int thread_count_track =0;
 // Matrix A components for CSR format
 vector<double>csr_val, csr_row, csr_col;
 
+//cuda attributes
+double *x, *y, *z, *C;
+int x_size = 0, y_size = 0, z_size = 0, C_size = 0;
+
 //Matrix B and C
 vector<double>b_vector;
 vector<double>c_vector;
@@ -57,6 +61,24 @@ void matrix_to_csr(vector<vector<double>>&matrix)
 
         csr_row.push_back(temp_count);
     }
+
+    
+    cudaMallocManaged(&x, csr_row.size()*sizeof(double));
+    x_size = csr_row.size();
+    cudaMallocManaged(&y, csr_col.size()*sizeof(double));
+    y_size = csr_col.size();
+    cudaMallocManaged(&z, csr_val.size()*sizeof(double));
+    z_size = csr_val.size();
+
+    for(auto i=0; i<csr_row.size(); i++)
+    x[i] = csr_row[i];
+
+    for(auto i=0; i<csr_col.size(); i++)
+    y[i] = csr_col[i];
+
+    for(auto i=0; i<csr_val.size(); i++)
+    z[i] = csr_val[i];
+
 }
 
 // function to perform CSR-vector multiplication without using threads
@@ -74,6 +96,7 @@ void multiplication()
 }
 
 // function to perform CSR-vector multiplication by using threads
+__global__
 void thread_multiplication()
 {
     int position = 0;
@@ -150,6 +173,9 @@ int main()
     }
 
     cout<<endl;
+
+
+    
     
     
     // multiplication with using threads
@@ -198,6 +224,10 @@ int main()
     for(auto i:c_vector) 
     cout<<i<<" "; 
     cout<<"\n";
+
+    cudaFree(x);
+    cudaFree(y);
+    cudaFree(z);
     
     return 0;
 }
