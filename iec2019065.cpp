@@ -28,12 +28,16 @@ int num_of_threads;
 int thread_count_track =0;
 
 // Matrix A components for CSR format
-vector<double>csr_val, csr_row, csr_col;
+// vector<double>csr_val, csr_row, csr_col;
+double *csr_row, *csr_col, *csr_val;
 
 //Matrix B and C
-vector<double>b_vector;
-vector<double>c_vector;
+// vector<double>b_vector;
+// vector<double>c_vector;
+double **b_vector, **c_vector;
 int vector_size;
+
+double **matrix;
 
 
 // function to convert 2d sparse matrix to CSR format
@@ -92,6 +96,11 @@ void thread_multiplication()
     }
 }
 
+void allocate_matrix()
+{
+  cudaMallocManaged(&matrix, (M*N)*sizeof(float));
+}
+
 int main()
 {
     // read COO file
@@ -103,7 +112,8 @@ int main()
     vector_size = M;
 
         // 2d matrix declaration
-    vector<vector<double>> matrix(M, vector<double>(N, 0.0));
+    // vector<vector<double>> matrix(M, vector<double>(N, 0.0));
+    allocate_matrix();
     
         // fill the matrix with non zero values while reading COO file
     for (int l = 0; l < L; l++)
